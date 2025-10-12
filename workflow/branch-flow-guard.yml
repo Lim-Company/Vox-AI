@@ -1,0 +1,50 @@
+name: Branch Flow Guard
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches:
+      - main
+      - test
+      - dev
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Enforce allowed merge paths
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+          echo "HEAD → BASE: $HEAD → $BASE"
+
+          allowed=0
+
+          # dev accepts: feature/*, fix/*, docs/*, chore/*, exp/*, client/*
+          if [[ "$BASE" == "dev" ]]; then
+            if [[ "$HEAD" =~ ^(feature|fix|docs|chore|exp|client)\/.+$ ]]; then
+              allowed=1
+            fi
+          fi
+
+          # test accepts only: dev
+          if [[ "$BASE" == "test" && "$HEAD" == "dev" ]]; then
+            allowed=1
+          fi
+
+          # main accepts only: test
+          if [[ "$BASE" == "main" && "$HEAD" == "test" ]]; then
+            allowed=1
+          fi
+
+          if [[ $allowed -ne 1 ]]; then
+            echo "::error ::Branch flow violation. Not allowed: '$HEAD' → '$BASE'."
+            echo "Allowed paths:"
+            echo "  feature/*|fix/*|docs/*|chore/*|exp/*|client/* → dev"
+            echo "  dev → test"
+            echo "  test → main"
+            exit 1
+          fi
