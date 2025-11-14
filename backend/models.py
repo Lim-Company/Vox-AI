@@ -36,3 +36,26 @@ class SummaryOut(BaseModel):
     client_id: str
     bullets: List[str]
     action_items: List[str] = []
+
+# ------------------------------------------
+# SQLAlchemy Models (Actual DB Tables)
+# ------------------------------------------
+
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import String, Integer, DateTime, Text, func
+
+class Base(DeclarativeBase):
+    pass
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    client_id: Mapped[str] = mapped_column(String(50), nullable=False)
+    from_number: Mapped[str] = mapped_column(String(30), nullable=False)
+    to_number: Mapped[str] = mapped_column(String(30), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
