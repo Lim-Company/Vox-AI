@@ -1,8 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from .routers import calls, messages, appointments, summaries
 
-app = FastAPI(title="AI Secretary API", version="0.1.0")
+from .models import Base              # SQLAlchemy Base from models.py
+from .db import engine                # SQLAlchemy engine from db.py
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    Base.metadata.create_all(bind=engine)
+    print("✔️ Database tables created")
+
+    yield
+
+    # Shutdown
+    print("👋 API shutting down")
+
+app = FastAPI(
+    title="AI Secretary API",
+    version="0.1.0"
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
