@@ -30,8 +30,7 @@ async def receive_message(
         client_id=msg.client_id,
         from_number=msg.from_number,
         to_number=msg.to_number,
-        body=msg.body,
-        received_at=datetime.utcnow(),
+        body=msg.body
     )
 
     db.add(db_msg)

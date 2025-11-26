@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -9,8 +9,9 @@ class MessageIn(BaseModel):
     body: str
 
 class MessageOut(MessageIn):
-    id: str
+    id: int
     received_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 class CallEvent(BaseModel):
     client_id: str

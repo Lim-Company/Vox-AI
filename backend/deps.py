@@ -1,8 +1,30 @@
 from fastapi import Header, HTTPException
-import os
+from typing import Generator
 
-async def verify_webhook(x_signature: str | None = Header(default=None)):
-    secret = os.getenv("TELEPHONY_WEBHOOK_SECRET", "changeme")
-    # NOTE: Stubbed verification. Replace with HMAC check against request body.
-    if not x_signature or x_signature != secret:
-        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+# SQLAlchemy session provider
+from .db import SessionLocal
+from .db import settings
+from sqlalchemy.orm import Session
+
+
+async def verify_webhook(x_webhook_secret: str = Header(default=None)):
+    # Allow everything on local (your laptop) if you want:
+    if settings.ENV == "local":
+        return
+
+    # In dev/test/prod → enforce secret
+    expected = settings.WEBHOOK_SECRET
+
+    if not x_webhook_secret or x_webhook_secret != expected:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid webhook signature",
+        )
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
