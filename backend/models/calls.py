@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional, List
 
 from sqlalchemy import (
     Column,
@@ -10,46 +11,53 @@ from sqlalchemy import (
     ForeignKey,
     JSON,
     func,
-    text,
 )
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship
 
-from backend.db import Base  # your Base import may be backend.db.Base
+from backend.db import Base
+
+
+def _uuid_str() -> str:
+    """Generate a UUID string for SQLite-friendly primary keys."""
+    return str(uuid.uuid4())
 
 
 class Call(Base):
     __tablename__ = "calls"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        server_default=text("gen_random_uuid()"),
-    )
+    # Use String PK instead of Postgres UUID type so SQLite is happy
+    id = Column(String(36), primary_key=True, default=_uuid_str)
 
-    external_id: Mapped[str | None] = mapped_column(String(100), unique=True, index=True)
-    from_number: Mapped[str] = mapped_column(String(32), index=True)
-    to_number: Mapped[str] = mapped_column(String(32), index=True)
+    external_id = Column(String(100), unique=True, index=True, nullable=True)
+    from_number = Column(String(32), index=True, nullable=False)
+    to_number = Column(String(32), index=True, nullable=False)
 
-    status: Mapped[str] = mapped_column(
+    status = Column(
         String(32),
         default="incoming",
         index=True,
         nullable=False,
     )
 
-    started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    started_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=True,
     )
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at = Column(DateTime(timezone=True), nullable=True)
 
-    duration_seconds: Mapped[int | None] = mapped_column(Integer)
+    duration_seconds = Column(Integer, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     segments = relationship(
@@ -70,24 +78,25 @@ class Call(Base):
 class CallSegment(Base):
     __tablename__ = "call_segments"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        server_default=text("gen_random_uuid()"),
+    id = Column(String(36), primary_key=True, default=_uuid_str)
+
+    call_id = Column(
+        String(36),
+        ForeignKey("calls.id", ondelete="CASCADE"),
+        nullable=False,
     )
 
-    call_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("calls.id", ondelete="CASCADE"), nullable=False
-    )
+    speaker = Column(String(32), nullable=False, index=True)
 
-    speaker: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    ended_at = Column(DateTime(timezone=True), nullable=True)
 
-    transcript_text: Mapped[str] = mapped_column(Text, nullable=False)
+    transcript_text = Column(Text, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
 
     call = relationship("Call", back_populates="segments")
@@ -96,30 +105,33 @@ class CallSegment(Base):
 class CallSummary(Base):
     __tablename__ = "call_summaries"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        server_default=text("gen_random_uuid()"),
-    )
+    id = Column(String(36), primary_key=True, default=_uuid_str)
 
-    call_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+    call_id = Column(
+        String(36),
         ForeignKey("calls.id", ondelete="CASCADE"),
         unique=True,
         nullable=False,
     )
 
-    summary_text: Mapped[str] = mapped_column(Text, nullable=False)
-    primary_intent: Mapped[str | None] = mapped_column(String(128))
-    urgency: Mapped[str | None] = mapped_column(String(32))
-    next_actions: Mapped[list | None] = mapped_column(JSON)
-    raw_llm_response: Mapped[dict | None] = mapped_column(JSON)
+    summary_text = Column(Text, nullable=False)
+    primary_intent = Column(String(128), nullable=True)
+    urgency = Column(String(32), nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    # SQLAlchemy's generic JSON type works on SQLite (it stores as TEXT under the hood)
+    next_actions = Column(JSON, nullable=True)
+    raw_llm_response = Column(JSON, nullable=True)
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
     )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
     )
 
     call = relationship("Call", back_populates="summary")
