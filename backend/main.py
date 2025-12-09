@@ -1,10 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from .routers import calls, messages, appointments, summaries, messages_api
+from .routers import calls, messages, appointments, summaries, messages_api, calls_api
 
-from .models import Base              # SQLAlchemy Base from models.py
-from .db import engine                # SQLAlchemy engine from db.py
+from .db import Base, engine                # SQLAlchemy Base and engine from db.py
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -36,6 +35,7 @@ app.include_router(messages.router)
 app.include_router(appointments.router)
 app.include_router(summaries.router)
 app.include_router(messages_api.router)
+app.include_router(calls_api.router)
 
 @app.get("/healthz")
 def healthz():

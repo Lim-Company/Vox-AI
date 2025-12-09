@@ -1,9 +1,15 @@
 from fastapi import APIRouter
-from ..models import Appointment
 
-router = APIRouter(prefix="/appointments", tags=["appointments"])
+router = APIRouter(
+    prefix="/appointments",
+    tags=["appointments"],
+)
 
-@router.post("")
-async def create_appt(appt: Appointment):
-    # TODO: store in DB + push to calendar provider
-    return {"ok": True, "appointment": appt.model_dump()}
+
+@router.get("/health")
+def appointments_health_check():
+    """
+    Temporary placeholder endpoint for the appointments router.
+    This just confirms the router is wired correctly.
+    """
+    return {"status": "appointments router OK"}

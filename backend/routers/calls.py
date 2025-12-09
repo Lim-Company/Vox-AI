@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends
-from ..models import CallEvent
-from ..deps import verify_webhook
+from fastapi import APIRouter
 
-router = APIRouter(prefix="/webhook/calls", tags=["calls"])
+router = APIRouter(
+    prefix="/calls",
+    tags=["calls"],
+)
 
-@router.post("", dependencies=[Depends(verify_webhook)])
-async def receive_call_event(event: CallEvent):
-    # TODO: persist event, trigger transcription job if completed+recording_url
-    return {"ok": True, "received": event.model_dump()}
+
+@router.get("/health")
+def calls_health_check():
+    """
+    Temporary placeholder endpoint for the calls router.
+    This just confirms the router is wired correctly.
+    """
+    return {"status": "calls router OK"}

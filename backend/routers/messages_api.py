@@ -1,10 +1,12 @@
+from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from ..deps import get_db
-from ..models import Message as DBMessage, MessageOut
+from ..models.messages import Message as DBMessage
+from ..schemas.messages import MessageOut
 
 router = APIRouter(
     prefix="/api/v1/messages",
@@ -37,7 +39,19 @@ def list_messages(
         .all()
     )
 
-    return messages
+    # Convert ORM -> Pydantic
+    return [
+        MessageOut(
+            id=m.id,
+            client_id=m.client_id,
+            from_number=m.from_number,
+            to_number=m.to_number,
+            body=m.body,
+            # you can map this to created_at or "now"
+            received_at=m.created_at if hasattr(m, "created_at") else datetime.utcnow(),
+        )
+        for m in messages
+    ]
 
 
 @router.get(
@@ -57,4 +71,12 @@ def get_message(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Message not found",
         )
-    return msg
+
+    return MessageOut(
+        id=msg.id,
+        client_id=msg.client_id,
+        from_number=msg.from_number,
+        to_number=msg.to_number,
+        body=msg.body,
+        received_at=msg.created_at if hasattr(msg, "created_at") else datetime.utcnow(),
+    )
